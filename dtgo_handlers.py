@@ -343,4 +343,36 @@ class TaskManager(QThread):
                         self.token_expired_signal.emit(self.beacon_info["target"])
         except Exception as e:
             self.error_signal.emit(f"获取子域名失败: {str(e)}")
-        return [] 
+        return []
+        
+    def delete_task(self, task_id, retry=True):
+        """删除灯塔任务"""
+        url = f"https://{self.beacon_info['target']}/api/task/delete/"
+        headers = {
+            "Token": self.beacon_info["token"],
+            "Content-Type": "application/json"  # 添加 Content-Type 头
+        }
+        data = {
+            "task_id": [task_id],
+            "del_task_data": True
+        }
+        
+        try:
+            self.progress_signal.emit(f"正在删除任务 {task_id}...")
+            response = requests.post(url, json=data, headers=headers, verify=False)
+            result = response.json()
+            
+            if result.get("code") == 200:
+                self.progress_signal.emit(f"任务 {task_id} 删除成功")
+                return True
+            elif result.get("code") == 401 and retry:  # token过期
+                if self.refresh_token():
+                    return self.delete_task(task_id, retry=False)
+                else:
+                    self.token_expired_signal.emit(self.beacon_info["target"])
+            else:
+                self.error_signal.emit(f"删除任务失败: {result.get('message', '未知错误')}")
+            return False
+        except Exception as e:
+            self.error_signal.emit(f"删除任务失败: {str(e)}")
+            return False 

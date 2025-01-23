@@ -32,7 +32,7 @@ class FofaThread(QThread):
         try:
             self.progress_value.emit(10)
             query = base64.b64encode("app=\"资产灯塔系统\"".encode()).decode()
-            url = f"https://fofa.info/api/v1/search/all?key={self.fofa_key}&qbase64={query}&size=1000"
+            url = f"https://fofa.info/api/v1/search/all?key={self.fofa_key}&qbase64={query}&size=10000"
             response = requests.get(url)
             self.progress_value.emit(30)
             
@@ -97,46 +97,209 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.config = config
         self.setWindowTitle("设置")
+        self.setFixedSize(400, 200)
+        
+        # 应用对话框样式
+        self.setStyleSheet("""
+            QDialog {
+                background-color: white;
+                border-radius: 4px;
+            }
+            QLabel {
+                color: #424242;
+                font-weight: bold;
+                padding: 5px 0;
+            }
+            QLineEdit {
+                padding: 8px;
+                border: 1px solid #E0E0E0;
+                border-radius: 4px;
+                background-color: white;
+                selection-background-color: #E3F2FD;
+                selection-color: #1976D2;
+            }
+            QLineEdit:focus {
+                border: 1px solid #2196F3;
+            }
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton:pressed {
+                background-color: #0D47A1;
+                padding: 9px 20px 7px 20px;
+            }
+        """)
+        
         self.setup_ui()
         
     def setup_ui(self):
-        layout = QFormLayout()
+        layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+        
+        # 创建表单布局
+        form_layout = QFormLayout()
+        form_layout.setSpacing(10)
+        form_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # FOFA API Key 输入框
         self.fofa_key_input = QLineEdit()
         self.fofa_key_input.setText(self.config.get_fofa_key())
-        layout.addRow("FOFA API Key:", self.fofa_key_input)
+        self.fofa_key_input.setPlaceholderText("请输入您的 FOFA API Key")
+        form_layout.addRow("FOFA API Key:", self.fofa_key_input)
+        
+        # 添加表单布局
+        layout.addLayout(form_layout)
+        
+        # 按钮布局
+        button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
         
         save_btn = QPushButton("保存")
+        cancel_btn = QPushButton("取消")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #757575;
+                color: white;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #616161;
+            }
+            QPushButton:pressed {
+                background-color: #424242;
+                padding: 9px 20px 7px 20px;
+            }
+        """)
+        
         save_btn.clicked.connect(self.save_settings)
-        layout.addRow(save_btn)
+        cancel_btn.clicked.connect(self.reject)
+        
+        button_layout.addStretch()
+        button_layout.addWidget(cancel_btn)
+        button_layout.addWidget(save_btn)
+        
+        # 添加按钮布局
+        layout.addStretch()
+        layout.addLayout(button_layout)
         
         self.setLayout(layout)
         
     def save_settings(self):
-        self.config.set_fofa_key(self.fofa_key_input.text())
-        self.accept()
+        try:
+            if self.config.set_fofa_key(self.fofa_key_input.text()):
+                self.accept()
+            else:
+                QMessageBox.warning(
+                    self,
+                    "保存失败",
+                    "无法保存配置文件，请检查程序是否有写入权限。",
+                    QMessageBox.StandardButton.Ok
+                )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "错误",
+                f"保存设置时发生错误：{str(e)}",
+                QMessageBox.StandardButton.Ok
+            )
 
 class TaskConfirmDialog(QDialog):
     def __init__(self, info_text, parent=None):
         super().__init__(parent)
         self.setWindowTitle("确认提交")
-        self.setFixedSize(600, 400)  # 固定对话框大小
+        self.setFixedSize(600, 400)
+        
+        # 应用对话框样式
+        self.setStyleSheet("""
+            QDialog {
+                background-color: white;
+                border-radius: 4px;
+            }
+            QLabel {
+                color: #424242;
+                padding: 10px;
+                font-size: 12px;
+                line-height: 1.5;
+            }
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton:pressed {
+                background-color: #0D47A1;
+                padding: 9px 20px 7px 20px;
+            }
+            QScrollArea {
+                border: 1px solid #E0E0E0;
+                border-radius: 4px;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: #F5F5F5;
+                width: 10px;
+                margin: 0;
+            }
+            QScrollBar::handle:vertical {
+                background: #BDBDBD;
+                border-radius: 5px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #9E9E9E;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+        """)
+        
         self.setup_ui(info_text)
         
     def setup_ui(self, info_text):
         layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
         
         # 创建滚动区域
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setFrameShape(QScrollArea.Shape.NoFrame)
         
         # 创建内容容器
         content_widget = QWidget()
         content_layout = QVBoxLayout()
+        content_layout.setContentsMargins(10, 10, 10, 10)
+        content_layout.setSpacing(10)
         
         # 添加任务信息文本
         info_label = QLabel(info_text)
-        info_label.setWordWrap(True)  # 允许文本换行
+        info_label.setWordWrap(True)
+        info_label.setTextFormat(Qt.TextFormat.PlainText)
         content_layout.addWidget(info_label)
         
         # 设置内容容器的布局
@@ -148,39 +311,446 @@ class TaskConfirmDialog(QDialog):
         
         # 创建按钮布局
         button_layout = QHBoxLayout()
+        button_layout.setSpacing(10)
         
         # 添加确认和取消按钮
         confirm_button = QPushButton("确认")
         cancel_button = QPushButton("取消")
+        cancel_button.setStyleSheet("""
+            QPushButton {
+                background-color: #757575;
+                color: white;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #616161;
+            }
+            QPushButton:pressed {
+                background-color: #424242;
+                padding: 9px 20px 7px 20px;
+            }
+        """)
+        
         confirm_button.clicked.connect(self.accept)
         cancel_button.clicked.connect(self.reject)
         
-        button_layout.addWidget(confirm_button)
+        button_layout.addStretch()
         button_layout.addWidget(cancel_button)
+        button_layout.addWidget(confirm_button)
         
         # 添加按钮布局到主布局
         layout.addLayout(button_layout)
         
         self.setLayout(layout)
 
+class AddBeaconDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("添加灯塔")
+        self.setFixedSize(400, 200)
+        
+        # 应用对话框样式
+        self.setStyleSheet("""
+            QDialog {
+                background-color: white;
+                border-radius: 4px;
+            }
+            QLabel {
+                color: #424242;
+                font-weight: bold;
+                padding: 5px 0;
+            }
+            QLineEdit {
+                padding: 8px;
+                border: 1px solid #E0E0E0;
+                border-radius: 4px;
+                background-color: white;
+            }
+            QLineEdit:focus {
+                border: 1px solid #2196F3;
+            }
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+            }
+            QPushButton:pressed {
+                background-color: #0D47A1;
+            }
+        """)
+        
+        self.setup_ui()
+        
+    def setup_ui(self):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+        
+        # 创建表单布局
+        form_layout = QFormLayout()
+        form_layout.setSpacing(10)
+        
+        # 输入框
+        self.address_input = QLineEdit()
+        self.address_input.setPlaceholderText("例如: example.com:5003")
+        self.username_input = QLineEdit()
+        self.username_input.setText("admin")  # 默认用户名
+        self.password_input = QLineEdit()
+        self.password_input.setText("arlpass")  # 默认密码
+        self.password_input.setEchoMode(QLineEdit.EchoMode.Password)
+        
+        form_layout.addRow("灯塔地址:", self.address_input)
+        form_layout.addRow("用户名:", self.username_input)
+        form_layout.addRow("密码:", self.password_input)
+        
+        layout.addLayout(form_layout)
+        
+        # 按钮布局
+        button_layout = QHBoxLayout()
+        
+        login_btn = QPushButton("登录")
+        cancel_btn = QPushButton("取消")
+        cancel_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #757575;
+            }
+            QPushButton:hover {
+                background-color: #616161;
+            }
+            QPushButton:pressed {
+                background-color: #424242;
+            }
+        """)
+        
+        login_btn.clicked.connect(self.accept)
+        cancel_btn.clicked.connect(self.reject)
+        
+        button_layout.addStretch()
+        button_layout.addWidget(cancel_btn)
+        button_layout.addWidget(login_btn)
+        
+        layout.addStretch()
+        layout.addLayout(button_layout)
+        
+        self.setLayout(layout)
+    
+    def get_inputs(self):
+        return {
+            'address': self.address_input.text().strip(),
+            'username': self.username_input.text().strip(),
+            'password': self.password_input.text().strip()
+        }
+
 class DTGO(QMainWindow):
     def __init__(self):
         super().__init__()
+        # 定义主题颜色
+        self.THEME_COLORS = {
+            'primary': '#2196F3',
+            'secondary': '#4CAF50',
+            'warning': '#FFC107',
+            'error': '#F44336',
+            'background': '#F5F5F5',
+            'text': '#212121',
+        }
+        
+        # 优化按钮样式
+        self.BUTTON_STYLE = """
+            QPushButton {
+                background-color: #2196F3;
+                color: white;
+                border: none;
+                padding: 8px 20px;
+                border-radius: 4px;
+                font-weight: bold;
+                min-width: 80px;
+            }
+            QPushButton:hover {
+                background-color: #1976D2;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+            QPushButton:pressed {
+                background-color: #0D47A1;
+                padding: 9px 20px 7px 20px;
+            }
+            QPushButton:disabled {
+                background-color: #BDBDBD;
+                color: rgba(255, 255, 255, 0.7);
+            }
+        """
+        
+        # 优化表格样式
+        self.TABLE_STYLE = """
+            QTableWidget {
+                background-color: white;
+                alternate-background-color: #F8F9FA;
+                border: 1px solid #E0E0E0;
+                border-radius: 4px;
+                gridline-color: #EEEEEE;
+                selection-background-color: #E3F2FD;
+                selection-color: #1976D2;
+            }
+            QTableWidget::item {
+                padding: 8px;
+                border-bottom: 1px solid #F0F0F0;
+            }
+            QTableWidget::item:selected {
+                background-color: #E3F2FD;
+                color: #1976D2;
+            }
+            QHeaderView::section {
+                background-color: #FAFAFA;
+                padding: 8px;
+                border: none;
+                border-right: 1px solid #E0E0E0;
+                border-bottom: 1px solid #E0E0E0;
+                font-weight: bold;
+                color: #424242;
+            }
+            QHeaderView::section:checked {
+                background-color: #E3F2FD;
+            }
+        """
+        
+        # 优化列表样式
+        self.LIST_STYLE = """
+            QListWidget {
+                background-color: white;
+                border: 1px solid #E0E0E0;
+                border-radius: 4px;
+                outline: none;
+            }
+            QListWidget::item {
+                padding: 10px;
+                border-bottom: 1px solid #F0F0F0;
+            }
+            QListWidget::item:selected {
+                background-color: #E3F2FD;
+                color: #1976D2;
+                border-left: 3px solid #1976D2;
+            }
+            QListWidget::item:hover {
+                background-color: #F5F5F5;
+            }
+        """
+        
+        # 优化进度条样式
+        self.PROGRESS_BAR_STYLE = """
+            QProgressBar {
+                border: none;
+                border-radius: 4px;
+                background-color: #E0E0E0;
+                text-align: center;
+                color: white;
+                font-weight: bold;
+                min-height: 20px;
+            }
+            QProgressBar::chunk {
+                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #2196F3, stop:1 #64B5F6);
+                border-radius: 4px;
+            }
+        """
+        
+        # 优化状态标签样式
+        self.STATUS_LABEL_STYLE = """
+            QLabel {
+                color: #616161;
+                padding: 8px;
+                border-top: 1px solid #E0E0E0;
+                background-color: #FAFAFA;
+                font-size: 11px;
+            }
+        """
+        
+        # 优化文本输入框样式
+        self.TEXT_EDIT_STYLE = """
+            QTextEdit {
+                background-color: white;
+                border: 1px solid #E0E0E0;
+                border-radius: 4px;
+                padding: 8px;
+                selection-background-color: #E3F2FD;
+                selection-color: #1976D2;
+            }
+            QTextEdit:focus {
+                border: 1px solid #2196F3;
+            }
+        """
+        
+        # 优化标签样式
+        self.LABEL_STYLE = """
+            QLabel {
+                color: #424242;
+                font-weight: bold;
+                padding: 8px 0;
+                font-size: 13px;
+            }
+        """
+        
+        # 优化标签页样式
+        self.TAB_STYLE = """
+            QTabWidget::pane {
+                border: 1px solid #E0E0E0;
+                border-radius: 4px;
+                background: white;
+                top: -1px;
+            }
+            QTabBar::tab {
+                background: #FAFAFA;
+                border: 1px solid #E0E0E0;
+                border-bottom: none;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                padding: 10px 15px;
+                margin-right: 2px;
+                color: #757575;
+            }
+            QTabBar::tab:selected {
+                background: white;
+                border-bottom: 1px solid white;
+                color: #2196F3;
+                font-weight: bold;
+            }
+            QTabBar::tab:hover:!selected {
+                background: #F5F5F5;
+                color: #424242;
+            }
+        """
+        
+        # 添加滚动条样式
+        self.SCROLLBAR_STYLE = """
+            QScrollBar:vertical {
+                border: none;
+                background: #F5F5F5;
+                width: 10px;
+                margin: 0;
+            }
+            QScrollBar::handle:vertical {
+                background: #BDBDBD;
+                border-radius: 5px;
+                min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: #9E9E9E;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
+            
+            QScrollBar:horizontal {
+                border: none;
+                background: #F5F5F5;
+                height: 10px;
+                margin: 0;
+            }
+            QScrollBar::handle:horizontal {
+                background: #BDBDBD;
+                border-radius: 5px;
+                min-width: 20px;
+            }
+            QScrollBar::handle:horizontal:hover {
+                background: #9E9E9E;
+            }
+            QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+                width: 0;
+            }
+            QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+                background: none;
+            }
+        """
+        
+        # 添加菜单样式
+        self.MENU_STYLE = """
+            QMenu {
+                background-color: white;
+                border: 1px solid #E0E0E0;
+                border-radius: 4px;
+                padding: 5px 0;
+            }
+            QMenu::item {
+                padding: 8px 25px;
+                border: none;
+                color: #424242;
+            }
+            QMenu::item:selected {
+                background-color: #E3F2FD;
+                color: #1976D2;
+            }
+            QMenu::item:disabled {
+                color: #BDBDBD;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #E0E0E0;
+                margin: 5px 0;
+            }
+        """
+        
+        # 添加对话框样式
+        self.DIALOG_STYLE = """
+            QDialog {
+                background-color: white;
+                border-radius: 4px;
+            }
+            QDialog QLabel {
+                color: #424242;
+            }
+            QDialog QLineEdit {
+                padding: 8px;
+                border: 1px solid #E0E0E0;
+                border-radius: 4px;
+                selection-background-color: #E3F2FD;
+                selection-color: #1976D2;
+            }
+            QDialog QLineEdit:focus {
+                border: 1px solid #2196F3;
+            }
+        """
+        
         self.setWindowTitle("灯塔狩猎者 (DTGO) by 小艾搞安全")
         self.setGeometry(100, 100, 1200, 800)
         self.config = Config()
         self.successful_beacons = self.config.get_successful_beacons()
         self.active_threads = []
         self.scanning = False
-        self.task_threads = []  # 添加任务线程列表
-        self.max_status_length = 50  # 添加状态消息最大长度限制
-        self.task_running = False  # 添加任务运行状态标识
-        self.active_beacon_tasks = {}  # 修改为字典，记录每个灯塔的任务状态
+        self.task_threads = []
+        self.max_status_length = 50
+        self.task_running = False
+        self.active_beacon_tasks = {}
         self.task_records = self.config.get_task_records()
         self.status_check_timer = QTimer()
-        self.status_check_timer.setInterval(120000)  # 2分钟
+        self.status_check_timer.setInterval(120000)
         self.status_check_timer.timeout.connect(self.check_running_tasks)
         self.status_check_timer.start()
+        
+        # 设置应用全局样式
+        self.setStyleSheet(f"""
+            QMainWindow {{
+                background-color: #F5F5F5;
+            }}
+            QWidget {{
+                font-family: "Microsoft YaHei", "Segoe UI", Arial;
+                font-size: 12px;
+            }}
+            {self.SCROLLBAR_STYLE}
+            {self.MENU_STYLE}
+        """)
+        
         self.initUI()
         self.load_cached_beacons()
         
@@ -210,7 +780,7 @@ class DTGO(QMainWindow):
     def initUI(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        main_layout = QHBoxLayout()  # 改为水平布局
+        main_layout = QHBoxLayout()
         
         # 左侧布局
         left_layout = QVBoxLayout()
@@ -219,18 +789,29 @@ class DTGO(QMainWindow):
         top_layout = QHBoxLayout()
         settings_btn = QPushButton("设置")
         settings_btn.clicked.connect(self.show_settings)
+        settings_btn.setStyleSheet(self.BUTTON_STYLE)
         
         self.fofa_scan_btn = QPushButton("扫描灯塔")
         self.fofa_scan_btn.clicked.connect(self.start_scan)
+        self.fofa_scan_btn.setStyleSheet(self.BUTTON_STYLE)
+        
+        # 添加"添加灯塔"按钮
+        add_beacon_btn = QPushButton("添加灯塔")
+        add_beacon_btn.clicked.connect(self.show_add_beacon_dialog)
+        add_beacon_btn.setStyleSheet(self.BUTTON_STYLE)
         
         self.stop_scan_btn = QPushButton("终止扫描")
         self.stop_scan_btn.clicked.connect(self.stop_scan)
         self.stop_scan_btn.setEnabled(False)
+        self.stop_scan_btn.setStyleSheet(self.BUTTON_STYLE)
         
         self.scan_progress = QProgressBar()
+        self.scan_progress.setStyleSheet(self.PROGRESS_BAR_STYLE)
         
+        # 按新顺序添加按钮到布局
         top_layout.addWidget(settings_btn)
         top_layout.addWidget(self.fofa_scan_btn)
+        top_layout.addWidget(add_beacon_btn)  # 移到终止扫描前面
         top_layout.addWidget(self.stop_scan_btn)
         top_layout.addWidget(self.scan_progress)
         left_layout.addLayout(top_layout)
@@ -242,6 +823,7 @@ class DTGO(QMainWindow):
         beacon_layout = QVBoxLayout()
         beacon_label = QLabel("灯塔列表")
         self.beacon_list = QListWidget()
+        self.beacon_list.setStyleSheet(self.LIST_STYLE)
         self.beacon_list.setSelectionMode(QListWidget.SelectionMode.ExtendedSelection)
         self.beacon_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.beacon_list.customContextMenuRequested.connect(self.show_beacon_context_menu)
@@ -252,8 +834,9 @@ class DTGO(QMainWindow):
         # 目标输入区域
         target_layout = QVBoxLayout()
         target_header = QHBoxLayout()
-        submit_btn = QPushButton("提交任务")  # 移动到左上角
+        submit_btn = QPushButton("提交任务")
         submit_btn.clicked.connect(self.submit_tasks)
+        submit_btn.setStyleSheet(self.BUTTON_STYLE)
         target_label = QLabel("目标列表")
         target_header.addWidget(submit_btn)
         target_header.addWidget(target_label)
@@ -269,14 +852,19 @@ class DTGO(QMainWindow):
         # 结果标签页
         self.result_tabs = QTabWidget()
         self.asset_table = QTableWidget()
-        self.asset_table.setColumnCount(5)
-        self.asset_table.setHorizontalHeaderLabels(["网站", "标题", "IP", "Server", "指纹"])
         self.domain_table = QTableWidget()
-        self.domain_table.setColumnCount(3)
-        self.domain_table.setHorizontalHeaderLabels(["域名", "类型", "IP"])
         self.leak_table = QTableWidget()
-        self.leak_table.setColumnCount(2)
-        self.leak_table.setHorizontalHeaderLabels(["URL", "标题"])
+        
+        # 设置表格样式
+        for table in [self.asset_table, self.domain_table, self.leak_table]:
+            table.setStyleSheet(self.TABLE_STYLE)
+            table.setAlternatingRowColors(True)
+            table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
+            table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+            table.horizontalHeader().setStretchLastSection(True)
+            table.verticalHeader().setVisible(False)
+        
+        self.setup_tables()
         
         self.result_tabs.addTab(self.asset_table, "资产列表")
         self.result_tabs.addTab(self.domain_table, "子域名")
@@ -285,6 +873,7 @@ class DTGO(QMainWindow):
         
         # 状态栏
         self.status_label = QLabel()
+        self.status_label.setStyleSheet(self.STATUS_LABEL_STYLE)
         left_layout.addWidget(self.status_label)
         
         # 添加左侧布局到主布局
@@ -294,6 +883,7 @@ class DTGO(QMainWindow):
         task_layout = QVBoxLayout()
         task_label = QLabel("任务记录")
         self.task_list = QListWidget()
+        self.task_list.setStyleSheet(self.LIST_STYLE)
         self.task_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.task_list.customContextMenuRequested.connect(self.show_task_context_menu)
         task_layout.addWidget(task_label)
@@ -306,6 +896,17 @@ class DTGO(QMainWindow):
         
         # 加载任务记录
         self.load_task_records()
+        
+        # 应用标签样式
+        beacon_label.setStyleSheet(self.LABEL_STYLE)
+        target_label.setStyleSheet(self.LABEL_STYLE)
+        task_label.setStyleSheet(self.LABEL_STYLE)
+        
+        # 应用文本输入框样式
+        self.target_input.setStyleSheet(self.TEXT_EDIT_STYLE)
+        
+        # 应用标签页样式
+        self.result_tabs.setStyleSheet(self.TAB_STYLE)
         
     def setup_tables(self):
         self.asset_table.setColumnCount(5)
@@ -322,6 +923,7 @@ class DTGO(QMainWindow):
 
     def show_settings(self):
         dialog = SettingsDialog(self.config, self)
+        dialog.setStyleSheet(self.DIALOG_STYLE)  # 应用对话框样式
         dialog.exec()
         
     def start_scan(self):
@@ -566,6 +1168,7 @@ class DTGO(QMainWindow):
 
     def show_beacon_context_menu(self, position):
         menu = QMenu()
+        menu.setStyleSheet(self.MENU_STYLE)  # 应用菜单样式
         
         # 添加全选动作
         select_all_action = QAction("全选", self)
@@ -684,8 +1287,8 @@ class DTGO(QMainWindow):
             item.setForeground(Qt.GlobalColor.black)
 
     def show_task_context_menu(self, position):
-        """显示任务记录右键菜单"""
         menu = QMenu()
+        menu.setStyleSheet(self.MENU_STYLE)  # 应用菜单样式
         
         # 添加全选动作
         select_all_action = QAction("全选", self)
@@ -888,7 +1491,7 @@ class DTGO(QMainWindow):
                            f"{leak.get('url', '')},{leak.get('title', '')}\n")
 
     def delete_selected_tasks(self):
-        """删除选中的任务记录"""
+        """删除选中的任务记录和远程灯塔记录"""
         selected_items = self.task_list.selectedItems()
         if not selected_items:
             return
@@ -896,7 +1499,7 @@ class DTGO(QMainWindow):
         reply = QMessageBox.question(
             self,
             "确认删除",
-            f"确定要删除选中的 {len(selected_items)} 条任务记录吗？",
+            f"确定要删除选中的 {len(selected_items)} 条任务记录吗？\n(同时会删除灯塔系统中的任务数据)",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
         
@@ -906,15 +1509,30 @@ class DTGO(QMainWindow):
                 beacon, rest = text.split(" => ")
                 task_id = rest.split(" [")[0]
                 
-                # 从记录中删除
-                if beacon in self.task_records:
-                    if task_id in self.task_records[beacon]:
-                        del self.task_records[beacon][task_id]
-                    if not self.task_records[beacon]:
-                        del self.task_records[beacon]
-                
-                # 从列表中删除
-                self.task_list.takeItem(self.task_list.row(item))
+                # 删除远程灯塔记录
+                if beacon in self.successful_beacons:
+                    beacon_info = {
+                        "target": beacon,
+                        "token": self.successful_beacons[beacon]["token"]
+                    }
+                    task_manager = TaskManager(beacon_info, [])
+                    task_manager.progress_signal.connect(self.update_status)
+                    task_manager.error_signal.connect(self.update_status)
+                    task_manager.token_expired_signal.connect(self.handle_token_expired)
+                    
+                    if task_manager.delete_task(task_id):
+                        self.status_label.setText(f"成功删除灯塔 {beacon} 的任务 {task_id}")
+                        # 从本地记录中删除
+                        if beacon in self.task_records:
+                            if task_id in self.task_records[beacon]:
+                                del self.task_records[beacon][task_id]
+                            if not self.task_records[beacon]:
+                                del self.task_records[beacon]
+                        # 从列表中删除
+                        self.task_list.takeItem(self.task_list.row(item))
+                    else:
+                        self.status_label.setText(f"删除灯塔 {beacon} 的任务 {task_id} 失败")
+                        continue  # 如果远程删除失败，不删除本地记录
             
             # 保存更新后的记录
             self.config.save_task_records(self.task_records)
@@ -1008,6 +1626,67 @@ class DTGO(QMainWindow):
             
             # 保存到配置文件
             self.config.save_task_records(self.task_records)
+
+    def show_add_beacon_dialog(self):
+        """显示添加灯塔对话框"""
+        dialog = AddBeaconDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            inputs = dialog.get_inputs()
+            self.add_beacon(inputs)
+
+    def add_beacon(self, inputs):
+        """添加新的灯塔"""
+        address = inputs['address']
+        
+        # 检查是否已存在
+        if address in self.successful_beacons:
+            QMessageBox.warning(
+                self,
+                "添加失败",
+                "该灯塔已在列表中，无需重复添加。",
+                QMessageBox.StandardButton.Ok
+            )
+            return
+        
+        try:
+            # 尝试登录
+            url = f"https://{address}/api/user/login"
+            data = {
+                "username": inputs['username'],
+                "password": inputs['password']
+            }
+            response = requests.post(url, json=data, verify=False, timeout=5)
+            result = response.json()
+            
+            if result.get("code") == 200:
+                # 登录成功，添加到列表
+                self.successful_beacons[address] = {
+                    "token": result["data"]["token"]
+                }
+                self.config.save_successful_beacons(self.successful_beacons)
+                
+                # 更新界面
+                self.beacon_list.addItem(address)
+                QMessageBox.information(
+                    self,
+                    "添加成功",
+                    "灯塔添加成功！",
+                    QMessageBox.StandardButton.Ok
+                )
+            else:
+                QMessageBox.warning(
+                    self,
+                    "登录失败",
+                    "用户名或密码错误。",
+                    QMessageBox.StandardButton.Ok
+                )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "连接失败",
+                f"无法连接到灯塔：{str(e)}",
+                QMessageBox.StandardButton.Ok
+            )
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
