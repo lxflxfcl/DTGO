@@ -1661,7 +1661,8 @@ class DTGO(QMainWindow):
             if result.get("code") == 200:
                 # 登录成功，添加到列表
                 self.successful_beacons[address] = {
-                    "token": result["data"]["token"]
+                    "token": result["data"]["token"],
+                    "target": address  # 添加target字段，与FOFA扫描添加的格式保持一致
                 }
                 self.config.save_successful_beacons(self.successful_beacons)
                 
